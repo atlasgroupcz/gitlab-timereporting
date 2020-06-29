@@ -31,7 +31,9 @@ public class Main {
             List<Project> projects = parse(zip, "projects.csv", parser, parser::parseProject);
             List<Issue> issues = parse(zip, "issues.csv", parser, parser::parseIssue);
             List<MergeRequest> mergeRequests = parse(zip, "merge_requests.csv", parser, parser::parseMergeRequest);
+            List<LabelLink> labelLinks = parse(zip, "label_links.csv", parser, parser::parseLabelLink);
             LOGGER.info("Parsed {} time logs", logs.size());
+            
         }
 
 

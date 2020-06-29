@@ -2,6 +2,8 @@ package cz.atlascon.timereporting;
 
 import cz.atlascon.timereporting.domain.*;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -15,7 +17,7 @@ import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 
 public class Parser {
 
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(Parser.class);
     private static final DateTimeFormatter DATE_TIME_FORMATTER = new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .append(ISO_LOCAL_DATE)
@@ -114,4 +116,24 @@ public class Parser {
                 getString("title")
         );
     }
+
+    public LabelLink parseLabelLink() {
+        final String tt = getString("target_type");
+        final LabelLink.Type type;
+        if (tt.equals("MergeRequest")) {
+            type = LabelLink.Type.MERGE_REQUEST;
+        } else if (tt.equals("Issue")) {
+            type = LabelLink.Type.ISSUE;
+        } else {
+            LOGGER.warn("Unknown label link {}", tt);
+            type = null;
+        }
+        return new LabelLink(
+                getInt("id"),
+                getInt("label_id"),
+                getInt("target_id"),
+                type
+        );
+    }
+
 }
