@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class Processor {
@@ -72,14 +71,15 @@ public class Processor {
                 .collect(Collectors.toList());
         LOGGER.info("Processing {} time logs", filtered.size());
 
-        final Map<Namespace, AtomicLong> times = Maps.newHashMap();
+        final SunburstBuilder sunburstBuilder = new SunburstBuilder(4);
         filtered.stream().forEach(timeLog -> {
             final Namespace ns = getNamespace(timeLog);
             final Project project = getProject(timeLog);
             final Issue issue = getIssue(timeLog);
             final User user = getUser(timeLog);
-            times.computeIfAbsent(ns, n -> new AtomicLong()).addAndGet(timeLog.time_spent());
+            sunburstBuilder.addTime(timeLog.time_spent(), ns.name(), project.name(), issue.title(), user.name());
         });
+        final String build = sunburstBuilder.build();
 
         return filtered;
     }
