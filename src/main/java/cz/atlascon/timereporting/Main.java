@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -22,10 +23,11 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
+        final Processor processor;
         final Parser parser = new Parser();
         try (final ZipFile zip = new ZipFile("/tmp/export.zip")) {
             List<TimeLog> logs = parse(zip, "timelogs.csv", parser, parser::parseTimeLog);
-            List<Group> groups = parse(zip, "namespaces.csv", parser, parser::parseGroup);
+            List<Namespace> namespaces = parse(zip, "namespaces.csv", parser, parser::parseGroup);
             List<Label> labels = parse(zip, "labels.csv", parser, parser::parseLabel);
             List<User> users = parse(zip, "users.csv", parser, parser::parseUser);
             List<Project> projects = parse(zip, "projects.csv", parser, parser::parseProject);
@@ -33,9 +35,10 @@ public class Main {
             List<MergeRequest> mergeRequests = parse(zip, "merge_requests.csv", parser, parser::parseMergeRequest);
             List<LabelLink> labelLinks = parse(zip, "label_links.csv", parser, parser::parseLabelLink);
             LOGGER.info("Parsed {} time logs", logs.size());
-            
+            processor = new Processor(logs, namespaces, labels, users, projects, issues, mergeRequests, labelLinks);
         }
 
+        processor.process(Instant.ofEpochMilli(0), Instant.now());
 
     }
 

@@ -61,8 +61,8 @@ public class Parser {
                 getInt("merge_request_id"));
     }
 
-    public Group parseGroup() {
-        return new Group(
+    public Namespace parseGroup() {
+        return new Namespace(
                 getInt("id"),
                 getString("name"),
                 getString("description")
@@ -90,7 +90,8 @@ public class Parser {
         return new Project(
                 getInt("id"),
                 getString("name"),
-                getString("description")
+                getString("description"),
+                getInt("namespace_id")
         );
     }
 

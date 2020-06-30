@@ -4,5 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record Project(@JsonProperty("id")int id,
                       @JsonProperty("name")String name,
-                      @JsonProperty("description")String description) {
+                      @JsonProperty("description")String description,
+                      int namespace_id) {
 }
