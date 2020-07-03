@@ -1,5 +1,6 @@
-package cz.atlascon.timereporting;
+package cz.atlascon.timereporting.services;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import cz.atlascon.timereporting.domain.*;
 import org.slf4j.Logger;
@@ -65,23 +66,46 @@ public class Processor {
     }
 
 
-    public List<TimeLog> process(final Instant from, final Instant to) {
+    public String process(final Instant from,
+                          final Instant to,
+                          final ReportType type,
+                          final List<ReportElement> elements) {
+        // filter
         final List<TimeLog> filtered = logs.stream()
                 .filter(l -> l.created_at().isAfter(from) && l.created_at().isBefore(to))
                 .collect(Collectors.toList());
         LOGGER.info("Processing {} time logs", filtered.size());
 
-        final SunburstBuilder sunburstBuilder = new SunburstBuilder(4);
-        filtered.stream().forEach(timeLog -> {
-            final Namespace ns = getNamespace(timeLog);
-            final Project project = getProject(timeLog);
-            final Issue issue = getIssue(timeLog);
-            final User user = getUser(timeLog);
-            sunburstBuilder.addTime(timeLog.time_spent(), ns.name(), project.name(), issue.title(), user.name());
-        });
-        final String build = sunburstBuilder.build();
+        // build
+        return switch (type) {
+            case SUNBURST -> createSunburst(filtered, elements);
+            default -> throw new IllegalArgumentException("Unknown report type");
+        };
 
-        return filtered;
+    }
+
+    private String createSunburst(final List<TimeLog> logs,
+                                  final List<ReportElement> elements) {
+        final SunburstBuilder sunburstBuilder = new SunburstBuilder(elements.size());
+        logs.stream().forEach(timeLog -> {
+            final List<String> itemz = Lists.newArrayList();
+            for (ReportElement element : elements) {
+                itemz.add(getVisualizable(timeLog, element));
+            }
+            sunburstBuilder.addTime(timeLog.time_spent(), itemz.toArray(new String[0]));
+        });
+        return sunburstBuilder.build();
+    }
+
+    private String getVisualizable(final TimeLog timeLog,
+                                   final ReportElement element) {
+        return switch (element) {
+            case ISSUE -> getIssue(timeLog).title();
+            case USER -> getUser(timeLog).name();
+            case NAMESPACE -> getNamespace(timeLog).name();
+            case PROJECT -> getProject(timeLog).name();
+            default -> throw new IllegalArgumentException("Unknown element " + element);
+        };
     }
 
     private User getUser(final TimeLog timeLog) {
@@ -123,4 +147,7 @@ public class Processor {
     }
 
 
+    public int getTimeLogsCount() {
+        return logs.size();
+    }
 }
