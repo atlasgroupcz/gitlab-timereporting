@@ -1,5 +1,6 @@
 package cz.atlascon.timereporting.services;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import cz.atlascon.timereporting.domain.*;
@@ -18,6 +19,8 @@ public class Processor {
     private static final Logger LOGGER = LoggerFactory.getLogger(Processor.class);
     private static final Issue MR_ISSUE = new Issue(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE,
             Instant.ofEpochSecond(0), "MergeRequest", "Fake issue for merge requests");
+    private static final String PRODUKT_PREFIX = "produkt-";
+    private static final String UNKNOWN_PRODUCT = "neznámý";
     private final List<TimeLog> logs;
     private final Map<Integer, Namespace> namespaces;
     private final Map<Integer, Label> labels;
@@ -29,6 +32,9 @@ public class Processor {
     // labels
     private final Map<MergeRequest, Set<String>> mergeRequestLabels = Maps.newHashMap();
     private final Map<Issue, Set<String>> issueLabels = Maps.newHashMap();
+    // products
+    private final Map<MergeRequest, String> mergeRequestProduct = Maps.newHashMap();
+    private final Map<Issue, String> issueProduct = Maps.newHashMap();
 
     public Processor(final List<TimeLog> logs,
                      final List<Namespace> namespaces,
@@ -55,14 +61,36 @@ public class Processor {
     private void labelItems() {
         labelLinks.forEach(ll -> {
             final String label = labels.get(ll.label_id()).title().strip().toLowerCase();
+            final String product = productFromLabelDescription(labels.get(ll.label_id()).description());
             if (ll.target_type() == LabelLink.Type.ISSUE) {
-                issueLabels.computeIfAbsent(issues.get(ll.id()), id -> new HashSet<>()).add(label);
+                final Issue issue = issues.get(ll.target_id());
+                issueLabels.computeIfAbsent(issue, id -> new HashSet<>()).add(label);
+                if (product != null) {
+                    issueProduct.computeIfAbsent(issue, id -> product);
+                }
             } else if (ll.target_type() == LabelLink.Type.MERGE_REQUEST) {
-                mergeRequestLabels.computeIfAbsent(mergeRequests.get(ll.id()), id -> new HashSet<>()).add(label);
+                final MergeRequest mergeRequest = mergeRequests.get(ll.target_id());
+                mergeRequestLabels.computeIfAbsent(mergeRequest, id -> new HashSet<>()).add(label);
+                if (product != null) {
+                    mergeRequestProduct.computeIfAbsent(mergeRequest, id -> product);
+                }
             } else {
                 throw new IllegalArgumentException("?");
             }
         });
+    }
+
+    private String productFromLabelDescription(final String description) {
+        if (description == null || description.isBlank()) {
+            return null;
+        }
+        if (description.contains(PRODUKT_PREFIX)) {
+            final List<String> itemz = Splitter.on(' ').splitToList(description.strip().toLowerCase());
+            final String prod = itemz.stream().filter(i -> i.contains(PRODUKT_PREFIX)).findFirst().orElse(null);
+            return prod.substring(PRODUKT_PREFIX.length());
+        } else {
+            return null;
+        }
     }
 
 
@@ -104,8 +132,14 @@ public class Processor {
             case USER -> getUser(timeLog).name();
             case NAMESPACE -> getNamespace(timeLog).name();
             case PROJECT -> getProject(timeLog).name();
+            case PRODUCT -> getProduct(timeLog);
             default -> throw new IllegalArgumentException("Unknown element " + element);
         };
+    }
+
+    private String getProduct(final TimeLog timeLog) {
+        final Issue issue = getIssue(timeLog);
+        return issueProduct.getOrDefault(issue, UNKNOWN_PRODUCT);
     }
 
     private User getUser(final TimeLog timeLog) {
