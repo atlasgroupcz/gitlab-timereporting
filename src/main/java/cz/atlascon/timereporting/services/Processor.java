@@ -4,6 +4,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import cz.atlascon.timereporting.domain.*;
+import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -217,8 +219,9 @@ public class Processor {
         for (int userId : users.keySet()) {
             // skip non existing
             final User user = users.get(userId);
-            if (user == null) {
-                LOGGER.warn("Skipping non-existing user id {}", userId);
+            // user logs
+            final List<TimeLog> forUser = logWindow.stream().filter(log -> log.user_id() == userId).collect(Collectors.toList());
+            if (forUser.isEmpty()) {
                 continue;
             }
             // create and fill user sheet
@@ -232,17 +235,16 @@ public class Processor {
             header.getCell(3).setCellValue("Project");
             header.getCell(4).setCellValue("Produkt");
             header.getCell(5).setCellValue("Issue");
-            // user logs
-            final List<TimeLog> forUser = logWindow.stream().filter(log -> log.user_id() == userId).collect(Collectors.toList());
             for (int i = 0; i < forUser.size(); i++) {
                 final TimeLog log = forUser.get(i);
                 final LocalDate date = log.created_at().atOffset(ZoneOffset.UTC).toLocalDate();
                 sheet.createRow(i + 1);
                 final SXSSFRow row = sheet.getRow(i + 1);
                 // day
-                row.getCell(0).setCellValue(date);
+                row.getCell(0).setCellValue(date.toString());
                 // worked hours
-                row.getCell(1).setCellValue(log.time_spent());
+                final String time = DurationFormatUtils.formatDuration(Duration.ofSeconds(log.time_spent()).toMillis(), "**H:mm:ss**", true);
+                row.getCell(1).setCellValue(time);
                 // namespace
                 row.getCell(2).setCellValue(getVisualizable(log, ReportElement.NAMESPACE));
                 // project
