@@ -4,14 +4,18 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import cz.atlascon.timereporting.domain.*;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.streaming.SXSSFRow;
+import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Processor {
@@ -55,6 +59,26 @@ public class Processor {
         labelItems();
     }
 
+    public List<User> getUsers() {
+        final List<User> users = new ArrayList<>(Set.copyOf(this.users.values()));
+        Collections.sort(users, Comparator.comparing(User::name).thenComparing(User::id));
+        return users;
+    }
+
+    public Set<String> getComponents(Instant from, Instant to, final ReportElement element) {
+        final Set<String> elements = getLogWindow(from, to).stream().map(log ->
+                switch (element) {
+                    case ISSUE -> getVisualizable(log, element);
+                    case NAMESPACE -> getVisualizable(log, element);
+                    case PRODUCT -> getVisualizable(log, element);
+                    case PROJECT -> getVisualizable(log, element);
+                    case USER -> getVisualizable(log, element);
+                }).collect(Collectors.toSet());
+        final ArrayList<String> sorted = new ArrayList<>(elements);
+        Collections.sort(sorted);
+        return new LinkedHashSet<>(sorted);
+    }
+
     /**
      * attach labels to merge requests / issues
      */
@@ -94,22 +118,20 @@ public class Processor {
     }
 
 
-    public String process(final Instant from,
-                          final Instant to,
-                          final ReportType type,
-                          final List<ReportElement> elements) {
+    public String getHierarchyReport(final Instant from, final Instant to,
+                                     final List<ReportElement> elements) {
         // filter
-        final List<TimeLog> filtered = logs.stream()
-                .filter(l -> l.created_at().isAfter(from) && l.created_at().isBefore(to))
-                .collect(Collectors.toList());
+        final List<TimeLog> filtered = getLogWindow(from, to);
         LOGGER.info("Processing {} time logs", filtered.size());
 
         // build
-        return switch (type) {
-            case SUNBURST -> createSunburst(filtered, elements);
-            default -> throw new IllegalArgumentException("Unknown report type");
-        };
+        return createSunburst(filtered, elements);
 
+    }
+
+    private List<TimeLog> getLogWindow(final Instant from, final Instant to) {
+        return logs.stream().filter(l -> l.created_at().isAfter(from) && l.created_at().isBefore(to))
+                .collect(Collectors.toList());
     }
 
     private String createSunburst(final List<TimeLog> logs,
@@ -183,5 +205,54 @@ public class Processor {
 
     public int getTimeLogsCount() {
         return logs.size();
+    }
+
+    public SXSSFWorkbook createTimesheet(final Instant from, final Instant to) throws IOException {
+        // crate workbook
+        final SXSSFWorkbook workbook = new SXSSFWorkbook();
+        workbook.setMissingCellPolicy(Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+        // sort logs by time
+        final List<TimeLog> logWindow = getLogWindow(from, to).stream().sorted(Comparator.comparing(TimeLog::created_at)).collect(Collectors.toList());
+        // for each user
+        for (int userId : users.keySet()) {
+            // skip non existing
+            final User user = users.get(userId);
+            if (user == null) {
+                LOGGER.warn("Skipping non-existing user id {}", userId);
+                continue;
+            }
+            // create and fill user sheet
+            final SXSSFSheet sheet = workbook.createSheet(user.name() + " (" + user.id() + ")");
+            // header
+            sheet.createRow(0);
+            final SXSSFRow header = sheet.getRow(0);
+            header.getCell(0).setCellValue("Datum");
+            header.getCell(1).setCellValue("Hodiny");
+            header.getCell(2).setCellValue("Namespace");
+            header.getCell(3).setCellValue("Project");
+            header.getCell(4).setCellValue("Produkt");
+            header.getCell(5).setCellValue("Issue");
+            // user logs
+            final List<TimeLog> forUser = logWindow.stream().filter(log -> log.user_id() == userId).collect(Collectors.toList());
+            for (int i = 0; i < forUser.size(); i++) {
+                final TimeLog log = forUser.get(i);
+                final LocalDate date = log.created_at().atOffset(ZoneOffset.UTC).toLocalDate();
+                sheet.createRow(i + 1);
+                final SXSSFRow row = sheet.getRow(i + 1);
+                // day
+                row.getCell(0).setCellValue(date);
+                // worked hours
+                row.getCell(1).setCellValue(log.time_spent());
+                // namespace
+                row.getCell(2).setCellValue(getVisualizable(log, ReportElement.NAMESPACE));
+                // project
+                row.getCell(3).setCellValue(getVisualizable(log, ReportElement.PROJECT));
+                // product
+                row.getCell(4).setCellValue(getVisualizable(log, ReportElement.PRODUCT));
+                // issue
+                row.getCell(5).setCellValue(getVisualizable(log, ReportElement.ISSUE));
+            }
+        }
+        return workbook;
     }
 }

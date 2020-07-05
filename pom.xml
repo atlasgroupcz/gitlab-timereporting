@@ -14,6 +14,7 @@
         <timestamp>${maven.build.timestamp}</timestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.boot.version>2.2.8.RELEASE</spring.boot.version>
+        <apache.poi.version>4.1.2</apache.poi.version>
     </properties>
 
     <dependencies>
@@ -30,31 +31,42 @@
             <version>${spring.boot.version}</version>
         </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>javax.ws.rs</groupId>-->
-        <!--            <artifactId>javax.ws.rs-api</artifactId>-->
-        <!--        </dependency>-->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${apache.poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${apache.poi.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>29.0-jre</version>
         </dependency>
+
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
             <version>1.8</version>
         </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.11.1</version>
         </dependency>
+
     </dependencies>
 
     <pluginRepositories>

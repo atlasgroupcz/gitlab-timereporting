@@ -13,6 +13,7 @@ import javax.inject.Named;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -27,6 +28,7 @@ public class DataService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DataService.class);
 
     private final AtomicReference<Processor> processorRef = new AtomicReference<>(null);
+    private final AtomicReference<LocalDateTime> lastProcessed = new AtomicReference<>(null);
 
     public Processor getProcessor() {
         return processorRef.get();
@@ -35,6 +37,14 @@ public class DataService {
     @PostConstruct
     public void setup() throws Exception {
         importFromFile(new File("/tmp/export.zip"));
+    }
+
+    public boolean hasData() {
+        return processorRef.get() != null;
+    }
+
+    public LocalDateTime getDataTimestamp() {
+        return lastProcessed.get();
     }
 
     public void importFromFile(File file) throws Exception {
@@ -50,6 +60,7 @@ public class DataService {
             List<LabelLink> labelLinks = parse(zip, "label_links.csv", parser, parser::parseLabelLink);
             LOGGER.info("Parsed {} time logs", logs.size());
             processorRef.set(new Processor(logs, namespaces, labels, users, projects, issues, mergeRequests, labelLinks));
+            lastProcessed.set(LocalDateTime.now());
         }
     }
 
