@@ -60,11 +60,11 @@ Upload GitLab exports to reporting backend
 #### Hierarchy reports
 
 Hierarchical reports can be used to produce d3js visualizations:  
-https://observablehq.com/@d3/nested-treemap
-https://observablehq.com/@d3/cascaded-treemap
-https://observablehq.com/@d3/treemap
-https://observablehq.com/@d3/zoomable-treemap
-https://observablehq.com/@d3/zoomable-sunburst 
+https://observablehq.com/@d3/nested-treemap   
+https://observablehq.com/@d3/cascaded-treemap   
+https://observablehq.com/@d3/treemap   
+https://observablehq.com/@d3/zoomable-treemap   
+https://observablehq.com/@d3/zoomable-sunburst    
 
 All possible hierarchy components are - `NAMESPACE`, `PROJECT`, `ISSUE`, `USER`, `PRODUCT`  
 To collect `PRODUCT` info, put `product-XXXX` in your label descriptions in GitLab, where XXXX is a product name
