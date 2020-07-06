@@ -10,13 +10,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SunburstBuilder {
+public class HierarchyReportBuilder {
 
     private final Map map = Maps.newHashMap();
     private final ObjectMapper om = new ObjectMapper();
     private final int depth;
 
-    public SunburstBuilder(final int depth) {
+    public HierarchyReportBuilder(final int depth) {
         Preconditions.checkArgument(depth > 0);
         this.depth = depth;
     }

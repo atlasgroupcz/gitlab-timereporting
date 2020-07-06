@@ -138,15 +138,15 @@ public class Processor {
 
     private String createSunburst(final List<TimeLog> logs,
                                   final List<ReportElement> elements) {
-        final SunburstBuilder sunburstBuilder = new SunburstBuilder(elements.size());
+        final HierarchyReportBuilder hierarchyReportBuilder = new HierarchyReportBuilder(elements.size());
         logs.stream().forEach(timeLog -> {
             final List<String> itemz = Lists.newArrayList();
             for (ReportElement element : elements) {
                 itemz.add(getVisualizable(timeLog, element));
             }
-            sunburstBuilder.addTime(timeLog.time_spent(), itemz.toArray(new String[0]));
+            hierarchyReportBuilder.addTime(timeLog.time_spent(), itemz.toArray(new String[0]));
         });
-        return sunburstBuilder.build();
+        return hierarchyReportBuilder.build();
     }
 
     private String getVisualizable(final TimeLog timeLog,
@@ -243,8 +243,9 @@ public class Processor {
                 // day
                 row.getCell(0).setCellValue(date.toString());
                 // worked hours
-                final String time = DurationFormatUtils.formatDuration(Duration.ofSeconds(log.time_spent()).toMillis(), "**H:mm:ss**", true);
-                row.getCell(1).setCellValue(time);
+                final int time = Math.abs(log.time_spent());
+                final String timeFormat = DurationFormatUtils.formatDuration(Duration.ofSeconds(time).toMillis(), "H:mm:ss", true);
+                row.getCell(1).setCellValue(log.time_spent() < 0 ? ("-" + timeFormat) : timeFormat);
                 // namespace
                 row.getCell(2).setCellValue(getVisualizable(log, ReportElement.NAMESPACE));
                 // project
@@ -252,9 +253,39 @@ public class Processor {
                 // product
                 row.getCell(4).setCellValue(getVisualizable(log, ReportElement.PRODUCT));
                 // issue
-                row.getCell(5).setCellValue(getVisualizable(log, ReportElement.ISSUE));
+                final Issue issue = getIssue(log);
+                row.getCell(5).setCellValue("[" + issue.id() + "] " + issue.title());
             }
         }
         return workbook;
+    }
+
+    public static record DayWork(int minutes, String formated) {
+    }
+
+    public Map<LocalDate, DayWork> createCalendar(final int year, final int userId) {
+        final LocalDate startDay = LocalDate.of(year, 1, 1);
+        final Instant from = startDay.atStartOfDay().toInstant(ZoneOffset.UTC);
+        final LocalDate endDay = startDay.plusYears(1).minusDays(1);
+        final Instant to = endDay.plusDays(1).atStartOfDay().minusSeconds(1).toInstant(ZoneOffset.UTC);
+        // put work to calendar
+        final Map<LocalDate, Integer> calendar = Maps.newTreeMap();
+        getLogWindow(from, to).stream()
+                .filter(l -> l.user_id() == userId)
+                .forEach(log -> {
+                    final LocalDate logDay = log.created_at().atOffset(ZoneOffset.UTC).toLocalDate();
+                    calendar.compute(logDay, (day, time) -> time == null ? log.time_spent() : time + log.time_spent());
+                });
+        startDay.datesUntil(startDay.plusYears(1)).forEach(day -> {
+            calendar.computeIfAbsent(day, d -> 0);
+        });
+        final Map<LocalDate, DayWork> formated = Maps.newLinkedHashMap();
+        calendar.forEach((d, t) -> {
+            final int time = Math.abs(t);
+            final String timeFormat = DurationFormatUtils.formatDuration(Duration.ofSeconds(time).toMillis(), "H:mm:ss", true);
+            final String tm = t < 0 ? ("-" + timeFormat) : timeFormat;
+            formated.put(d, new DayWork(t / 60, tm));
+        });
+        return formated;
     }
 }

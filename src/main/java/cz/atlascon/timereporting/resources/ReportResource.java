@@ -6,16 +6,14 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.io.ByteStreams;
 import cz.atlascon.timereporting.domain.User;
 import cz.atlascon.timereporting.services.DataService;
+import cz.atlascon.timereporting.services.Processor;
 import cz.atlascon.timereporting.services.ReportElement;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 import javax.annotation.Resource;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
@@ -28,6 +26,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -127,13 +126,35 @@ public class ReportResource {
     public Response getUserTimesheet(@Context final UriInfo info) throws Exception {
         final Instant from = getDate("from", info);
         final Instant to = getDate("to", info);
+        final String dateRange = from.atOffset(ZoneOffset.UTC).toLocalDate().toString() + "_" + to.atOffset(ZoneOffset.UTC).toLocalDate().toString();
         try (final SXSSFWorkbook timesheet = dataService.getProcessor().createTimesheet(from, to)) {
             try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
                 timesheet.write(bos);
                 bos.close();
-                return Response.ok(bos.toByteArray()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"timesheet.xlsx\"").build();
+                return Response.ok(bos.toByteArray()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"timesheet_" + dateRange + ".xlsx\"").build();
             }
         }
     }
+
+    @GET
+    @Produces("application/json")
+    @Path("/userCalendar/{year}/{userId}")
+    public Response getUserCalendar(@PathParam("userId") int userId,
+                                    @PathParam("year") int year) throws Exception {
+        final Map<LocalDate, Processor.DayWork> work = dataService.getProcessor().createCalendar(year, userId);
+        final ArrayNode node = om.createArrayNode();
+        for (Map.Entry<LocalDate, Processor.DayWork> e : work.entrySet()) {
+            final ObjectNode on = om.createObjectNode();
+            on.put("date", e.getKey().toString());
+            on.put("minutes", e.getValue().minutes());
+            on.put("time", e.getValue().formated());
+            node.add(on);
+        }
+        return Response.ok(node.toPrettyString()).build();
+    }
+
+    // Calendar report
+    // ===================
+
 
 }
