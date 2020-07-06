@@ -260,7 +260,7 @@ public class Processor {
         return workbook;
     }
 
-    public static record DayWork(int minutes, String formated) {
+    public static record DayWork(int minutes, String formatedTotalTime) {
     }
 
     public Map<LocalDate, DayWork> createCalendar(final int year, final int userId) {

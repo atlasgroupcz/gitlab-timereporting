@@ -9,15 +9,14 @@ import cz.atlascon.timereporting.services.DataService;
 import cz.atlascon.timereporting.services.Processor;
 import cz.atlascon.timereporting.services.ReportElement;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 
 import javax.annotation.Resource;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.*;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,12 +42,15 @@ public class ReportResource {
         this.dataService = dataService;
     }
 
-    @PUT
+    @POST
     @Path("/upload")
-    public Response upload(InputStream in) throws Exception {
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response uploadFile(@FormDataParam("file") InputStream uploadedInputStream,
+                               @FormDataParam("file") FormDataContentDisposition fileDetail)
+            throws Exception {
         final File tempFile = File.createTempFile("zip-upload", ".zip");
         try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-            ByteStreams.copy(in, fos);
+            ByteStreams.copy(uploadedInputStream, fos);
         }
         dataService.importFromFile(tempFile);
         final int logs = dataService.getProcessor().getTimeLogsCount();
@@ -147,7 +149,7 @@ public class ReportResource {
             final ObjectNode on = om.createObjectNode();
             on.put("date", e.getKey().toString());
             on.put("minutes", e.getValue().minutes());
-            on.put("time", e.getValue().formated());
+            on.put("time", e.getValue().formatedTotalHour());
             node.add(on);
         }
         return Response.ok(node.toPrettyString()).build();

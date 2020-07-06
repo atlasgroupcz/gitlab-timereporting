@@ -2,6 +2,7 @@ package cz.atlascon.timereporting.cfg;
 
 import cz.atlascon.timereporting.resources.ReportResource;
 import org.glassfish.jersey.logging.LoggingFeature;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ public class Config extends ResourceConfig {
     public void registerEndpoints() {
         // jersey
         register(LoggingFeature.class);
+        register(MultiPartFeature.class);
         // app
         register(ReportResource.class);
     }
