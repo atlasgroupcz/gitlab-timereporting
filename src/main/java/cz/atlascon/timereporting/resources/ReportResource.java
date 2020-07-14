@@ -149,7 +149,7 @@ public class ReportResource {
             final ObjectNode on = om.createObjectNode();
             on.put("date", e.getKey().toString());
             on.put("minutes", e.getValue().minutes());
-            on.put("time", e.getValue().formatedTotalHour());
+            on.put("time", e.getValue().formatedTotalTime());
             node.add(on);
         }
         return Response.ok(node.toPrettyString()).build();
