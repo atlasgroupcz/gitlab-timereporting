@@ -34,10 +34,10 @@ public class DataService {
         return processorRef.get();
     }
 
-    @PostConstruct
-    public void setup() throws Exception {
-        importFromFile(new File("/tmp/export.zip"));
-    }
+//    @PostConstruct
+//    public void setup() throws Exception {
+//        importFromFile(new File("/tmp/export.zip"));
+//    }
 
     public boolean hasData() {
         return processorRef.get() != null;

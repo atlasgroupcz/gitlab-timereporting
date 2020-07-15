@@ -1,5 +1,6 @@
 package cz.atlascon.timereporting.cfg;
 
+import cz.atlascon.timereporting.resources.HealthcheckResource;
 import cz.atlascon.timereporting.resources.ReportResource;
 import org.glassfish.jersey.logging.LoggingFeature;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -20,5 +21,6 @@ public class Config extends ResourceConfig {
         register(MultiPartFeature.class);
         // app
         register(ReportResource.class);
+        register(HealthcheckResource.class);
     }
 }
