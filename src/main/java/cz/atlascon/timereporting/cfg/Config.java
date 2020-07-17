@@ -19,8 +19,10 @@ public class Config extends ResourceConfig {
         // jersey
         register(LoggingFeature.class);
         register(MultiPartFeature.class);
+        register(CORSFilter.class);
         // app
         register(ReportResource.class);
         register(HealthcheckResource.class);
+
     }
 }
