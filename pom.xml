@@ -13,7 +13,7 @@
         <java.version>14</java.version>
         <timestamp>${maven.build.timestamp}</timestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring.boot.version>2.2.8.RELEASE</spring.boot.version>
+        <spring.boot.version>2.5.12</spring.boot.version>
         <apache.poi.version>4.1.2</apache.poi.version>
     </properties>
 
